@@ -1,0 +1,5 @@
+# !/bin/csh
+#PBS -N myjob
+#PBS -l nodes=8:ppn=8
+cd /home/secvss/mpi-test                # Direct it to your current working directory^M
+/usr/local/bin/mpirun -np 64 test-mpi
