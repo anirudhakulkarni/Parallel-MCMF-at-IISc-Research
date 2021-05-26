@@ -1,4 +1,28 @@
-all:
-	g++ -save-temps -fverbose-asm -fopenmp main.c++ -o a.out
-	./a.out 10
-.PHONY: all
+SHELL=bash
+CC = g++
+# compiler flags:
+#  -g     - this flag adds debugging information to the executable file
+#  -Wall  - this flag is used to turn on most compiler warnings
+CPPFLAGS  = -g -Wall 
+TARGET = main
+BUILD_DIR = ./build
+OUT_DIR = ./outputs
+SRC_DIR= ./src
+LIB = pkg-config --cflags 
+SRCS := ./src/main.cpp
+OBJ := $(SRCS:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
+
+all:clean build run
+clean:
+	@echo Removing old build files :
+	$(RM) -r $(BUILD_DIR)
+build:
+	@echo Building project :
+	mkdir $(BUILD_DIR)
+	$(CC) $(CPPFLAGS) -fopenmp $(SRCS) -o $(OBJ)
+	@echo Generated the executable without errors ...
+run:
+	@echo Running the executable ...
+	$(OBJ) $(ARGS)
+
+.PHONY: all build clean
