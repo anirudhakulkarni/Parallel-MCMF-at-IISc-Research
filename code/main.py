@@ -4,11 +4,10 @@ import csv
 from csv import writer
 from csv import reader
 from geopy.distance import great_circle
+from numpy.lib.utils import source
 import requests
 import json
-# call the OSMR API
-
-
+import numpy as np, numpy.random
 def Randomizer(infile='coord.csv', outfile='coord-o.csv'):
     rows = []
     with open(infile, 'r') as read_obj, \
@@ -25,9 +24,19 @@ def Randomizer(infile='coord.csv', outfile='coord-o.csv'):
     return rows
 
 
-def GetDistance(coor1, coor2):
+def GetThDistance(coor1, coor2):
     return great_circle(coor1, coor2).km
+def GetAPIDistance(row1,row2):
+    lon_1, lat_1, lon_2, lat_2 = row1[3], row1[2], row2[3], row2[2]
+    r = requests.get(
+        f"http://router.project-osrm.org/route/v1/car/{lon_1},{lat_1};{lon_2},{lat_2}?overview=false""")
+    routes = json.loads(r.content)
 
+    # print(routes)
+    if(routes['code'] != 'Ok'):
+        return
+
+    return routes.get("routes")[0]['distance']/1000
 
 def GetRows(filename):
     fields = []
@@ -57,29 +66,74 @@ def WriteDistances(infile='coord.csv', outfile='distbetn.csv'):
 
 
 # Randomizer()
-hospitals = GetRows("coord.csv")
-with open('outfile.csv', 'w', newline='') as write_obj:
-    for row1 in hospitals:
-        for row2 in hospitals:
-            if(row1 != row2 and row1[0] == 'Maharashtra' and row2[0] == 'Maharashtra'):
-                lon_1, lat_1, lon_2, lat_2 = row1[3], row1[2], row2[3], row2[2]
-                r = requests.get(
-                    f"http://router.project-osrm.org/route/v1/car/{lon_1},{lat_1};{lon_2},{lat_2}?overview=false""")
-                routes = json.loads(r.content)
+def randomPathGenerator():
+    hospitals = GetRows("coord.csv")
+    with open('outfile.csv', 'w', newline='') as write_obj:
+        for row1 in hospitals:
+            for row2 in hospitals:
+                if(row1 != row2 and row1[0] == 'Maharashtra' and row2[0] == 'Maharashtra'):
+                    lon_1, lat_1, lon_2, lat_2 = row1[3], row1[2], row2[3], row2[2]
+                    r = requests.get(
+                        f"http://router.project-osrm.org/route/v1/car/{lon_1},{lat_1};{lon_2},{lat_2}?overview=false""")
+                    routes = json.loads(r.content)
 
-                # print(routes)
-                if(routes['code'] != 'Ok'):
-                    continue
+                    # print(routes)
+                    if(routes['code'] != 'Ok'):
+                        continue
 
-                distance = routes.get("routes")[0]['distance']
-                csv_writer = writer(write_obj)
-                row_upd = [row1[0]]+[row1[1]]+[row2[0]]+[row2[1]]+[distance]
-                print(row_upd)
-                csv_writer.writerow(row_upd)
-                if(row2[1] == 'Latur' and row1[1] == 'North Goa'):
-                    # print(route_1)
-                    print(GetDistance((row1[2], row1[3]), (row2[2], row2[3])))
+                    distance = routes.get("routes")[0]['distance']
+                    csv_writer = writer(write_obj)
+                    row_upd = [row1[0]]+[row1[1]]+[row2[0]]+[row2[1]]+[distance]
+                    print(row_upd)
+                    csv_writer.writerow(row_upd)
+                    if(row2[1] == 'Latur' and row1[1] == 'North Goa'):
+                        # print(route_1)
+                        print(GetDistance((row1[2], row1[3]), (row2[2], row2[3])))
+
+def GetDistricts(state):
+    districts=[]
+    with open("coord-all.csv", 'r') as read_obj, \
+            open("coord-"+state+".csv", 'w', newline='') as write_obj:
+        csv_reader = reader(read_obj)
+        fields = next(csv_reader)
+        csv_writer = writer(write_obj)
+        csv_writer.writerow(fields)
+        for row in csv_reader:
+            if(row[0] == state):
+                csv_writer.writerow(row)
+                districts+=[row]
+                print(row)
+    return districts
+
+def getEdges(sources,sinks):
+    edges=[]
+    for source in sources:
+        for sink in sinks:
+            edges.append([source,sink,GetAPIDistance(source,sink)])
+    return edges
+def GetSources(districts,NumberOfSources,TotalCapacity):
+    sources=[]
+    sourcesCapacity = [random.randint(0,100) for i in range(NumberOfSources)]
+    sourcesCapacity = [ TotalCapacity*i/sum(sourcesCapacity) for i in sourcesCapacity ]
+    for i in range(NumberOfSources):
+        sources+=[districts[random.randint(0,len(districts))]+[sourcesCapacity[i]]]
+    return sources
+def GetSinks(districts,TotalRequirement):
+    sinkRequirement = [random.randint(0,100) for i in range(len(districts))]
+    sinkRequirement = [ 275*i/sum(sinkRequirement) for i in sinkRequirement ]
+    for i in range(len(districts)):
+        districts[i]+=[sinkRequirement[i]]
+    return districts
+# get districts of the state
+districts=GetDistricts("Karnataka")
+# Get sources and random capacities with 275 sum
+sources=GetSources(districts,5,275)
+# Give random requirement to all cities summing to 275
+sinks=GetSinks(districts,275)
+# get distance between all sources and sinks
+edges=getEdges(sources,districts)
+
+print("EDGES:")
+print(edges)
 G = nx.DiGraph()
-for hospital in hospitals:
-    G.add_node(hospital[1], demand=[4])
 print(G)
