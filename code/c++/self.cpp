@@ -3,12 +3,8 @@
 #include <chrono>
 #include <iostream>
 using namespace std;
-
-#include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
-#include <boost/graph/find_flow_cost.hpp>
-
-#include "min_cost_max_flow.hpp"
 #include <string>
+#include <queue>
 #include <tuple>
 #define ln "\n"
 #define out1(x1) cout << x1 << ln
@@ -18,6 +14,13 @@ using namespace std;
 #define out5(x1,x2,x3,x4,x5) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << ln
 #define out6(x1,x2,x3,x4,x5,x6) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << " " << x6 << ln
 using namespace std::chrono;
+
+const int INF = 1e9;
+
+struct Edge
+{
+    int from, to, capacity, cost;
+};
 
 
 vector<vector<int>> getNodes(int numberOfNodes)
@@ -75,26 +78,101 @@ tuple<vector<vector<int>>, vector<vector<int>>> distributeSourceSink(vector<vect
     return make_tuple(sources, sinks);
 }
 
-vector<vector<int>> getEdges(vector<vector<int>> sources, vector<vector<int>> sinks)
+vector<Edge> getEdges(vector<vector<int>> sources, vector<vector<int>> sinks)
 {
-    vector<vector<int>> edges;
+    vector<Edge> edges;
     for (int i = 0; i < sources.size(); i++)
     {
         for (int j = 0; j < sinks.size(); j++)
         {
-            vector<int> edge;
-            edge.push_back(sources[i][0]);
-            edge.push_back(sinks[j][0]);
-            edge.push_back(rand()%10+2); //weight
+            Edge edge;
+            edge.from=sources[i][0];
+            edge.to=sinks[i][0];
+            edge.capacity=INF;
+            edge.cost=rand()%10+2;
+            // edge.push_back(sources[i][0]);
+            // edge.push_back(sinks[j][0]);
+            // edge.push_back(); //weight
             edges.push_back(edge);
         }
     }
     return edges;
 }
 
-int main()
-{
-    vector<vector<int>> experiments;
+
+vector<vector<int>> adj, cost, capacity;
+
+void shortest_paths(int n, int v0, vector<int>& d, vector<int>& p) {
+    d.assign(n, INF);
+    d[v0] = 0;
+    vector<bool> inq(n, false);
+    queue<int> q;
+    q.push(v0);
+    p.assign(n, -1);
+
+    while (!q.empty()) {
+        int u = q.front();
+        q.pop();
+        inq[u] = false;
+        for (int v : adj[u]) {
+            if (capacity[u][v] > 0 && d[v] > d[u] + cost[u][v]) {
+                d[v] = d[u] + cost[u][v];
+                p[v] = u;
+                if (!inq[v]) {
+                    inq[v] = true;
+                    q.push(v);
+                }
+            }
+        }
+    }
+}
+
+int min_cost_flow(int N, vector<Edge> edges, int K, int s, int t) {
+    adj.assign(N, vector<int>());
+    cost.assign(N, vector<int>(N, 0));
+    capacity.assign(N, vector<int>(N, 0));
+    for (Edge e : edges) {
+        adj[e.from].push_back(e.to);
+        adj[e.to].push_back(e.from);
+        cost[e.from][e.to] = e.cost;
+        cost[e.to][e.from] = -e.cost;
+        capacity[e.from][e.to] = e.capacity;
+    }
+
+    int flow = 0;
+    int cost = 0;
+    vector<int> d, p;
+    while (flow < K) {
+        shortest_paths(N, s, d, p);
+        if (d[t] == INF)
+            break;
+
+        // find max flow on that path
+        int f = K - flow;
+        int cur = t;
+        while (cur != s) {
+            f = min(f, capacity[p[cur]][cur]);
+            cur = p[cur];
+        }
+
+        // apply flow
+        flow += f;
+        cost += f * d[t];
+        cur = t;
+        while (cur != s) {
+            capacity[p[cur]][cur] -= f;
+            capacity[cur][p[cur]] += f;
+            cur = p[cur];
+        }
+    }
+
+    if (flow < K)
+        return -1;
+    else
+        return cost;
+}
+int main(){
+vector<vector<int>> experiments;
     for (int i = 0; i < 1; i++)
     {
 
@@ -113,7 +191,8 @@ int main()
         vector<vector<int>> sinks;
 
         tie(sources, sinks) = distributeSourceSink(nodes, numberOfSrcs,totalCapacity,totalRequirement);
-        vector<vector<int>> edges = getEdges(sources, sinks);
+        vector<Edge> edges = getEdges(sources, sinks);
+        min_cost_flow(numberOfNodes,edges,)
         // cout<<"sanity check\n";
         // for (int i = 0; i < nodes.size(); i++)
         // {
@@ -135,19 +214,14 @@ int main()
         //     out4(edges[i][0],edges[i][1],edges[i][2],edges[i][3]);
         // }
         
-        boost::SampleGraph::vertex_descriptor s, t;
-        boost::SampleGraph::Graph g;
-        boost::SampleGraph::getSampleGraph(g, s, t, sources, sinks, edges);
-out2(numberOfSrcs,numberOfSnks);
+       cout<<"Starting\n";
 auto start = high_resolution_clock::now();
 
-        boost::successive_shortest_path_nonnegative_weights(g, s, t);
+       
 auto stop = high_resolution_clock::now();
 auto duration = duration_cast<microseconds>(stop - start);
-cout << duration.count()/1000000.0 << " microseconds" << endl;
-
-        int cost = boost::find_flow_cost(g);
-        cout << cost << endl;
+cout << "Time taken by function: "<< duration.count() << " microseconds" << endl;
+ cout << cost << endl;
     }
 
     // assert(cost == 29);

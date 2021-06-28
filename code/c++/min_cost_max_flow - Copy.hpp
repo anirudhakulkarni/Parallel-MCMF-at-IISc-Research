@@ -10,8 +10,9 @@ using namespace std;
 
 namespace boost
 {
-    struct SampleGraph
+    class SampleGraph
     {
+        public:
         typedef adjacency_list_traits<vecS, vecS, directedS> Traits;
 
         typedef adjacency_list<vecS, vecS, directedS, no_property,
@@ -83,7 +84,7 @@ namespace boost
 
         template <class Graph, class Weight, class Capacity, class Reversed,
                   class ResidualCapacity>
-        static void getSampleGraph(Graph &g, vertex_descriptor &s,
+        static Graph getSampleGraph(Graph &g, vertex_descriptor &s,
                                    vertex_descriptor &t, Capacity capacity,
                                    ResidualCapacity residual_capacity, Weight weight, Reversed rev,vector<vector<int>> sources,vector<vector<int>> sinks, vector<vector<int>> edges)
         {
@@ -113,7 +114,7 @@ namespace boost
             {
                 ea.addEdge(sinks[i][0],t,0,sinks[i][1]);
             }
-            
+            return g
             // ea.addEdge(0, 1, 4, 2);
             // ea.addEdge(0, 2, 2, 2);
 
