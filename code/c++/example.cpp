@@ -2,6 +2,7 @@
 #include <vector>
 #include <chrono>
 #include <iostream>
+#include <omp.h>
 using namespace std;
 
 #include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
@@ -12,13 +13,12 @@ using namespace std;
 #include <tuple>
 #define ln "\n"
 #define out1(x1) cout << x1 << ln
-#define out2(x1,x2) cout << x1 << " " << x2 << ln
-#define out3(x1,x2,x3) cout << x1 << " " << x2 << " " << x3 << ln
-#define out4(x1,x2,x3,x4) cout << x1 << " " << x2 << " " << x3 << " " << x4 << ln
-#define out5(x1,x2,x3,x4,x5) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << ln
-#define out6(x1,x2,x3,x4,x5,x6) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << " " << x6 << ln
+#define out2(x1, x2) cout << x1 << " " << x2 << ln
+#define out3(x1, x2, x3) cout << x1 << " " << x2 << " " << x3 << ln
+#define out4(x1, x2, x3, x4) cout << x1 << " " << x2 << " " << x3 << " " << x4 << ln
+#define out5(x1, x2, x3, x4, x5) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << ln
+#define out6(x1, x2, x3, x4, x5, x6) cout << x1 << " " << x2 << " " << x3 << " " << x4 << " " << x5 << " " << x6 << ln
 using namespace std::chrono;
-
 
 vector<vector<int>> getNodes(int numberOfNodes)
 {
@@ -48,16 +48,16 @@ tuple<vector<vector<int>>, vector<vector<int>>> distributeSourceSink(vector<vect
     vector<vector<int>> sources;
     vector<vector<int>> sinks;
 
-    for (int i = 1; i < numberOfSources+1; i++)
+    for (int i = 1; i < numberOfSources + 1; i++)
     {
         sources.push_back({i});
     }
-        // cout<<"Sources inside:\n";
-        // for (int i = 0; i < sources.size(); i++)
-        // {
-        //     cout<<sources[i][0]<<endl;
-        // }
-    for (int i = numberOfSources+1; i < nodes.size()+1; i++)
+    // cout<<"Sources inside:\n";
+    // for (int i = 0; i < sources.size(); i++)
+    // {
+    //     cout<<sources[i][0]<<endl;
+    // }
+    for (int i = numberOfSources + 1; i < nodes.size() + 1; i++)
     {
         sinks.push_back({i});
     }
@@ -85,7 +85,7 @@ vector<vector<int>> getEdges(vector<vector<int>> sources, vector<vector<int>> si
             vector<int> edge;
             edge.push_back(sources[i][0]);
             edge.push_back(sinks[j][0]);
-            edge.push_back(rand()%10+2); //weight
+            edge.push_back(rand() % 10 + 2); //weight
             edges.push_back(edge);
         }
     }
@@ -95,12 +95,14 @@ vector<vector<int>> getEdges(vector<vector<int>> sources, vector<vector<int>> si
 int main()
 {
     vector<vector<int>> experiments;
-    for (int i = 0; i < 1; i++)
+    for (int i = 0; i < 10; i++)
     {
 
-        experiments.push_back({500, 500 * (i + 1)});
+        experiments.push_back({10, 100 * (i + 1)});
     }
-
+  #pragma omp parallel
+  { 
+    #pragma omp for
     for (int i = 0; i < experiments.size(); i++)
     {
         int numberOfSrcs = experiments[i][0];
@@ -112,7 +114,7 @@ int main()
         vector<vector<int>> sources;
         vector<vector<int>> sinks;
 
-        tie(sources, sinks) = distributeSourceSink(nodes, numberOfSrcs,totalCapacity,totalRequirement);
+        tie(sources, sinks) = distributeSourceSink(nodes, numberOfSrcs, totalCapacity, totalRequirement);
         vector<vector<int>> edges = getEdges(sources, sinks);
         // cout<<"sanity check\n";
         // for (int i = 0; i < nodes.size(); i++)
@@ -134,22 +136,22 @@ int main()
         // {
         //     out4(edges[i][0],edges[i][1],edges[i][2],edges[i][3]);
         // }
-        
+
         boost::SampleGraph::vertex_descriptor s, t;
         boost::SampleGraph::Graph g;
         boost::SampleGraph::getSampleGraph(g, s, t, sources, sinks, edges);
-out2(numberOfSrcs,numberOfSnks);
-auto start = high_resolution_clock::now();
+        out2(numberOfSrcs, numberOfSnks);
+        auto start = high_resolution_clock::now();
 
         boost::successive_shortest_path_nonnegative_weights(g, s, t);
-auto stop = high_resolution_clock::now();
-auto duration = duration_cast<microseconds>(stop - start);
-cout << duration.count()/1000000.0 << " microseconds" << endl;
+        auto stop = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(stop - start);
+        cout << duration.count() / 1000000.0 << " seconds" << endl;
 
         int cost = boost::find_flow_cost(g);
         cout << cost << endl;
     }
-
+  }
     // assert(cost == 29);
     return 0;
 }
