@@ -1,2 +1,7 @@
 *.ppt
 *.pdf
+*.zip
+*.tgz
+lemon
+lemon-1.3.1
+soplex-5.0.2

@@ -94,7 +94,7 @@ namespace boost
                 add_vertex(g);
             }
             s = 0;
-            t = sources.size()+sinks.size();
+            t = sources.size()+sinks.size()+1;
 
             EdgeAdder<Graph, Weight, Capacity, Reversed, ResidualCapacity> ea(
                 g, weight, capacity, rev, residual_capacity);

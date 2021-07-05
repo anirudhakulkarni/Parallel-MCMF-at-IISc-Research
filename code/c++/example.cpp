@@ -7,6 +7,7 @@ using namespace std;
 
 #include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
 #include <boost/graph/find_flow_cost.hpp>
+#include <boost/graph/graphviz.hpp>
 
 #include "min_cost_max_flow.hpp"
 #include <string>
@@ -27,7 +28,6 @@ vector<vector<int>> getNodes(int numberOfNodes)
     {
         nodes.push_back({i});
     }
-
     return nodes;
 }
 vector<int> randomList(int size, int sum)
@@ -41,37 +41,36 @@ vector<int> randomList(int size, int sum)
     {
         arr[rand() % size]++;
     }
+    for (int i = 0; i < size; ++i)
+    {
+        cout << arr[i] << " ";
+    }
     return arr;
 }
 tuple<vector<vector<int>>, vector<vector<int>>> distributeSourceSink(vector<vector<int>> nodes, int numberOfSources, int totalCapacity, int totalRequirement)
 {
     vector<vector<int>> sources;
     vector<vector<int>> sinks;
-
     for (int i = 1; i < numberOfSources + 1; i++)
     {
         sources.push_back({i});
     }
-    // cout<<"Sources inside:\n";
-    // for (int i = 0; i < sources.size(); i++)
-    // {
-    //     cout<<sources[i][0]<<endl;
-    // }
     for (int i = numberOfSources + 1; i < nodes.size() + 1; i++)
     {
         sinks.push_back({i});
     }
     vector<int> sinkRequirement = randomList(sinks.size(), totalRequirement);
     vector<int> sourceCapacity = randomList(sources.size(), totalCapacity);
+    // cout << "Printing Source capacity: \n";
     for (int i = 0; i < sources.size(); i++)
     {
         sources[i].push_back(sourceCapacity[i]);
+        // cout << sourceCapacity[i] << endl;
     }
     for (int i = 0; i < sinks.size(); i++)
     {
         sinks[i].push_back(sinkRequirement[i]);
     }
-
     return make_tuple(sources, sinks);
 }
 
@@ -95,63 +94,64 @@ vector<vector<int>> getEdges(vector<vector<int>> sources, vector<vector<int>> si
 int main()
 {
     vector<vector<int>> experiments;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 1; i++)
     {
-
-        experiments.push_back({10, 100 * (i + 1)});
+        experiments.push_back({500, 500 * (i + 1)});
     }
-  #pragma omp parallel
-  { 
-    #pragma omp for
+    // #pragma omp parallel
+    // {
+    //     #pragma omp for
     for (int i = 0; i < experiments.size(); i++)
     {
         int numberOfSrcs = experiments[i][0];
         int numberOfSnks = experiments[i][1];
         int numberOfNodes = numberOfSrcs + numberOfSnks;
-        int totalCapacity = 10;
-        int totalRequirement = 10;
+        int totalCapacity = 10000;
+        int totalRequirement = 10000;
         vector<vector<int>> nodes = getNodes(numberOfNodes);
         vector<vector<int>> sources;
         vector<vector<int>> sinks;
-
         tie(sources, sinks) = distributeSourceSink(nodes, numberOfSrcs, totalCapacity, totalRequirement);
         vector<vector<int>> edges = getEdges(sources, sinks);
-        // cout<<"sanity check\n";
+        cout << "sanity check\n";
         // for (int i = 0; i < nodes.size(); i++)
         // {
-        //     cout<<nodes[i][0]<<" "<<nodes[i][1]<<endl;
+        //     cout << nodes[i][0] << " " << nodes[i][1] << endl;
         // }
-        // cout<<"Sources\n";
-        // for (int i = 0; i < sources.size(); i++)
-        // {
-        //     cout<<sources[i][0]<<" "<<sources[i][1]<<endl;
-        // }
-        // cout<<"Sinks\n";
-        // for (int i = 0; i < sinks.size(); i++)
-        // {
-        //     cout<<sinks[i][0]<<" "<<sinks[i][1]<<endl;
-        // }
-        // cout<<"Edges\n";
+        cout << "Sources\n";
+        for (int i = 0; i < sources.size(); i++)
+        {
+            cout << sources[i][0] << " " << sources[i][1] << endl;
+        }
+        cout << "Sinks\n";
+        for (int i = 0; i < sinks.size(); i++)
+        {
+            cout << sinks[i][0] << " " << sinks[i][1] << endl;
+        }
+        // cout << "Edges\n";
         // for (int i = 0; i < edges.size(); i++)
         // {
-        //     out4(edges[i][0],edges[i][1],edges[i][2],edges[i][3]);
+        //     out4(edges[i][0], edges[i][1], edges[i][2], edges[i][3]);
         // }
-
         boost::SampleGraph::vertex_descriptor s, t;
         boost::SampleGraph::Graph g;
         boost::SampleGraph::getSampleGraph(g, s, t, sources, sinks, edges);
+        cout << "Edges\n";
+        // for (int i = 0; i < edges.size(); i++)
+        // {
+        //     out4(edges[i][0], edges[i][1], edges[i][2], edges[i][3]);
+        // }
         out2(numberOfSrcs, numberOfSnks);
+        // write_graphviz(std::cout, g);
         auto start = high_resolution_clock::now();
-
         boost::successive_shortest_path_nonnegative_weights(g, s, t);
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         cout << duration.count() / 1000000.0 << " seconds" << endl;
-
         int cost = boost::find_flow_cost(g);
         cout << cost << endl;
     }
-  }
+    // }
     // assert(cost == 29);
     return 0;
 }
