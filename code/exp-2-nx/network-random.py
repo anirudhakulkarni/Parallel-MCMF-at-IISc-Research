@@ -81,15 +81,16 @@ def modelWdemand(totalSources,totalSinks,edges):
     G.add_edge(edge[0], edge[2], weight=int(edge[4]) )
   return G
 
+executor=100
+if(len(sys.argv)>1):
+  executor=sys.argv[1]
 tempList=[100,200,300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000]
+parameters=[50,100,200,300,400,600,800,1000]
+if(len(parameters)<executor):
+  print("no such parameter exists")
 experiment=[]
 for i in tempList:
-  experiment+=[[50,i]]
-  experiment+=[[100,i]]
-  experiment+=[[200,i]]
-  experiment+=[[300,i]]
-  experiment+=[[400,i]]
-  experiment+=[[500,i]]
+  experiment+=[[parameters[executor-1],i]]
 experiment.sort()
 
 print(experiment)
@@ -97,7 +98,7 @@ header = ['sources', 'sinks', 'Time-create-MWOD', 'Time-create-MWD', 'Time-run-M
 data=[]
 
 
-with open('results-6.csv', 'w', encoding='UTF8', newline='') as f:
+with open('results-'+executor+'.csv', 'w', encoding='UTF8', newline='') as f:
   writer = csv.writer(f)
   writer.writerow(header)
 for event in experiment:
@@ -154,7 +155,7 @@ for event in experiment:
   data+=[row]
   print(row)
   
-  with open('results-6.csv', 'a', encoding='UTF8', newline='') as f:
+  with open('results-'+executor+'.csv', 'a', encoding='UTF8', newline='') as f:
     writer = csv.writer(f)
     # writer.writerow(header)
     writer.writerow(row)
