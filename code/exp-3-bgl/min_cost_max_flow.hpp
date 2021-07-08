@@ -101,10 +101,8 @@ namespace boost
                 // weight,capacity
             for (int i = 0; i < sources.size(); i++)
             {
-                // cout<<i<<" " <<sources[i][1]<<endl;
                 ea.addEdge(0,sources[i][0],0,sources[i][1]);
-            }
-            
+            }            
             for (int i = 0; i < edges.size(); i++)
             {
                 ea.addEdge(edges[i][0],edges[i][1],edges[i][2],INT64_MAX);
